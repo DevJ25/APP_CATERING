@@ -1,71 +1,44 @@
 "use client";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import Image from "next/image";
-import { useState } from "react";
 
-const LoginForm = ({ onRegisterClick }) => {
-  const router = useRouter();
+const API_URL = "http://localhost:8084";
+
+const LoginForm = ({ onRegisterClick, onLoginSuccess }) => {
   const [formData, setFormData] = useState({
-    username: "",
+    nombreUsuario: "",
     password: "",
   });
-  const [errors, setErrors] = useState({
-    username: "",
-    password: "",
-    general: "",
-  });
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-    // Limpiar errores al escribir
-    setErrors({
-      ...errors,
-      [name]: "",
-      general: "",
-    });
+    setFormData({ ...formData, [name]: value });
+    setError(""); // Limpiar errores al escribir
   };
 
-  const validateForm = () => {
-    let valid = true;
-    const newErrors = { ...errors };
-
-    if (!formData.username.trim()) {
-      newErrors.username = "El usuario es requerido";
-      valid = false;
-    }
-
-    if (!formData.password) {
-      newErrors.password = "La contraseña es requerida";
-      valid = false;
-    } else if (formData.password.length < 6) {
-      newErrors.password = "La contraseña debe tener al menos 6 caracteres";
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
-
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    // Validación básica
+    if (!formData.nombreUsuario || !formData.password) {
+      setError("Usuario y contraseña son obligatorios");
+      return;
+    }
 
-    setIsLoading(true);
+    setLoading(true);
+    setError("");
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: formData.username,
+          nombreUsuario: formData.nombreUsuario,
           password: formData.password,
         }),
       });
@@ -73,98 +46,113 @@ const LoginForm = ({ onRegisterClick }) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Error al iniciar sesión");
+        throw new Error(data.error || "Credenciales incorrectas");
       }
 
-      // Guardar token en localStorage o cookies
-      localStorage.setItem("authToken", data.token);
+      // Estructura esperada del backend:
+      // {
+      //   "token": "jwt.token.here",
+      //   "nombreUsuario": "usuario123",
+      //   "nombres": "Juan",
+      //   "apellidos": "Pérez",
+      //   "email": "juan@example.com"
+      // }
 
-      // Redirigir al dashboard
-      router.push("/dashboard");
-    } catch (error) {
-      setErrors({
-        ...errors,
-        general: error.message || "Credenciales incorrectas",
+      // Guardar datos en localStorage
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          nombreUsuario: data.nombreUsuario,
+          nombres: data.nombres,
+          apellidos: data.apellidos,
+          email: data.email,
+        })
+      );
+
+      // Notificar al componente padre
+      onLoginSuccess({
+        nombreUsuario: data.nombreUsuario,
+        nombres: data.nombres,
+        apellidos: data.apellidos,
+        email: data.email,
       });
+    } catch (err) {
+      setError(err.message || "Error al iniciar sesión");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4 max-w-md mx-auto p-6 bg-white rounded-lg shadow">
-      <div className="flex justify-center">
-        <Image src="/icons/logo.svg" width={100} height={100} alt="Logo" />
+    <main className="flex flex-row w-full h-full items-center justify-center h-screen bg-blue-700">
+      <div className="bg-yellow-400 w-[80%] h-auto flex justify-center items-center p-4">
+        <div className="flex flex-col w-full max-w-md">
+          <h1 className="text-2xl font-bold mb-4">Iniciar Sesión</h1>
+
+          {error && (
+            <div className="p-3 mb-4 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col space-y-4">
+              <input
+                type="text"
+                placeholder="Nombre de Usuario"
+                name="nombreUsuario"
+                value={formData.nombreUsuario}
+                onChange={handleChange}
+                className="p-2 rounded border border-gray-300"
+                required
+              />
+              <input
+                type="password"
+                placeholder="Contraseña"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="p-2 rounded border border-gray-300"
+                required
+              />
+            </div>
+
+            <div className="flex justify-between mt-6">
+              <button
+                type="button"
+                onClick={onRegisterClick}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
+              >
+                Registrarse
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`bg-green-600 text-white px-4 py-2 rounded transition-colors ${
+                  loading
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-green-700"
+                }`}
+              >
+                {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-      <h2 className="text-xl font-semibold text-center">Iniciar Sesión</h2>
 
-      {errors.general && (
-        <div className="p-3 text-sm text-red-700 bg-red-100 rounded">
-          {errors.general}
-        </div>
-      )}
-
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <label
-            htmlFor="username"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Usuario
-          </label>
-          <input
-            type="text"
-            id="username"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            placeholder="Ingresa tu usuario"
-            className={`w-full p-2 border rounded ${errors.username ? "border-red-500" : "border-gray-300"}`}
-          />
-          {errors.username && (
-            <p className="mt-1 text-sm text-red-600">{errors.username}</p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Contraseña
-          </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Ingresa tu contraseña"
-            className={`w-full p-2 border rounded ${errors.password ? "border-red-500" : "border-gray-300"}`}
-          />
-          {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? "Cargando..." : "Iniciar Sesión"}
-          </button>
-          <button
-            type="button"
-            onClick={onRegisterClick}
-            className="text-blue-600 underline hover:text-blue-800"
-          >
-            Registrarme
-          </button>
-        </div>
-      </form>
-    </div>
+      <div className="bg-cyan-400 w-[10%] h-auto flex justify-center items-center p-4">
+        <Image
+          src="/icons/logo.svg"
+          width={100}
+          height={100}
+          alt="Logo"
+          priority
+        />
+      </div>
+    </main>
   );
 };
 

@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import app.catering.DTO.AuthResponse;
+import app.catering.DTO.LoginRequest;
+import app.catering.Services.AuthService;
 import app.catering.Services.UsuarioService;
 import app.catering.Users.Usuario;
 import jakarta.validation.Valid;
@@ -25,6 +28,9 @@ public class AuthController {
     // Inyección automática del servicio de usuario
     @Autowired
     private UsuarioService usuarioService;
+    
+    @Autowired
+    private AuthService authService;
 
     // Endpoint POST para registrar nuevos usuarios
     @PostMapping("/registro")
@@ -47,6 +53,17 @@ public class AuthController {
         // Devuelve el nuevo usuario creado con código de estado 200 OK
         return ResponseEntity.ok(nuevoUsuario);
     }
-
-
+    
+    // Endpoint POST para iniciar sesión
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        try {
+            AuthResponse authResponse = authService.login(loginRequest);
+            return ResponseEntity.ok(authResponse);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 }

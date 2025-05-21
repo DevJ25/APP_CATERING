@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Component from "../components/NavComp";
+import NavbarComponent from "../components/NavComp";
 import { ThemeModeScript } from "flowbite-react";
+import Footers from "../components/footer";
 
 export const metadata: Metadata = {
   title: "Catering Gourmet",
@@ -19,10 +20,10 @@ export default function RootLayout({
         <ThemeModeScript />
 
         <div className="">
-          <Component />
-         
+          <NavbarComponent />
         </div>
         {children}
+        <Footers />
       </body>
     </html>
   );
