@@ -1,5 +1,4 @@
 {
-  "java.compile.nullAnalysis.mode": "automatic",
   "files.associations": {
     "*.css": "tailwindcss"
   },
@@ -10,6 +9,5 @@
       "createTheme(?:<\\w+>)?\\s*\\(([^)]*)\\)",
       "{?\\s?[\\w].*:\\s*?[\"'`]([^\"'`]*).*?,?\\s?}?"
     ]
-  ],
-  "java.configuration.updateBuildConfiguration": "automatic"
+  ]
 }
